@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TOTO12 Voice Assistant - Powered by Gemini</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+    .dark ::-webkit-scrollbar-thumb { background: #334155; }
+    
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .recording-pulse {
+      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- Header / Navigation -->
+  <header class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <i class="fa-solid font-bold fa-microphone-lines text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
+            TOTO12 Voice Assistant
+            <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">Gemini AI</span>
+          </h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Speech-to-Text Realtime & Operator Smart Helper</p>
+        </div>
+      </div>
+
+      <!-- Quick Controls Header -->
+      <div class="flex items-center gap-2">
+        <button id="themeToggleBtn" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition" title="Ganti Tema">
+          <i class="fa-solid fa-moon dark:hidden"></i>
+          <i class="fa-solid fa-sun hidden dark:block"></i>
+        </button>
+        <span class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+          <i class="fa-solid fa-shield-halved text-emerald-500"></i>
+          Cloudflare Secure API
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
+
+    <!-- Controls & Status Card -->
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-5 shadow-sm">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        
+        <!-- Status Indicator -->
+        <div class="flex items-center gap-4">
+          <div id="recordVisualizer" class="relative flex items-center justify-center w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400">
+            <div id="pulseCircle" class="absolute inset-0 rounded-full bg-brand-500/30 hidden recording-pulse"></div>
+            <i id="micIcon" class="fa-solid fa-microphone text-2xl z-10 transition-colors"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span id="badgeStatus" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                SIAP
+              </span>
+              <span id="recordingTimer" class="text-xs font-mono font-medium text-slate-400 hidden">00:00</span>
+            </div>
+            <p id="statusMsg" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Klik "Mulai Bicara" dan izinkan mikrofon.
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="startBtn" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-lg shadow-brand-600/25 transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none">
+            <i class="fa-solid fa-microphone"></i>
+            <span>Mulai Bicara</span>
+          </button>
+          
+          <button id="stopBtn" disabled class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm shadow-lg shadow-rose-600/25 transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none">
+            <i class="fa-solid fa-square"></i>
+            <span>Berhenti</span>
+          </button>
+
+          <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1"></div>
+
+          <button id="copyBtn" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition font-medium text-sm" title="Salin Teks">
+            <i class="fa-regular fa-copy"></i>
+          </button>
+          <button id="clearBtn" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 text-slate-700 dark:text-slate-200 transition font-medium text-sm" title="Hapus Semua">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output Textarea Area -->
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-5 shadow-sm flex flex-col gap-3 flex-1">
+      <div class="flex items-center justify-between">
+        <label for="transcriptBox" class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          <i class="fa-solid fa-align-left text-brand-500"></i>
+          Hasil Transkripsi Suara (Gemini AI Powered)
+        </label>
+        
+        <!-- Utility Formatting Toolbar -->
+        <div class="flex items-center gap-1">
+          <button id="btnUpper" class="text-[11px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 font-mono font-bold" title="KAPITAL SEMUA">AA</button>
+          <button id="btnCleanSpace" class="text-[11px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200" title="Rapikan Spasi">Rapikan</button>
+        </div>
+      </div>
+
+      <div class="relative flex-1 min-h-[280px]">
+        <textarea id="transcriptBox" 
+          placeholder="Suara yang diucapkan akan langsung dikonversi menjadi teks di sini...&#10;Gunakan mikrofon jernih atau headset agar hasil ejaan nomor bank, nominal, dan istilah perbankan lebih akurat."
+          class="w-full h-full min-h-[280px] p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-sans text-sm sm:text-base leading-relaxed text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/50 resize-y"></textarea>
+      </div>
+
+      <!-- Footer Info Box -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/50 text-xs text-slate-500 dark:text-slate-400">
+        <div class="flex items-center gap-4">
+          <span>Karakter: <strong id="charCount" class="text-slate-700 dark:text-slate-200">0</strong></span>
+          <span>Kata: <strong id="wordCount" class="text-slate-700 dark:text-slate-200">0</strong></span>
+        </div>
+        <div class="flex items-center gap-1 text-[11px] text-slate-400">
+          <i class="fa-solid fa-lock text-emerald-500"></i>
+          <span>Secure Mode: API Key tersimpan aman di Cloudflare Secrets</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preset CS Keywords Bar -->
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 shadow-sm">
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Kata Kunci Utama CS (Pemicu Aksentuasi Gemini)</h3>
+      <div class="flex flex-wrap gap-1.5">
+        <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs text-slate-600 dark:text-slate-300">TOTO12</span>
+        <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs text-slate-600 dark:text-slate-300">Deposit</span>
+        <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs text-slate-600 dark:text-slate-300">Withdraw / WD</span>
+        <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs text-slate-600 dark:text-slate-300">BCA / BRI / Mandiri</span>
+        <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs text-slate-600 dark:text-slate-300">DANA / OVO / QRIS</span>
+        <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs text-slate-600 dark:text-slate-300">Rollingan / Bonus</span>
+        <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs text-slate-600 dark:text-slate-300">Nomor Rekening</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastMsg">Pesan Toast</span>
+  </div>
+
+  <!-- Client-side Logic Script -->
+  <script>
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    let timerInterval = null;
+    let secondsElapsed = 0;
+
+    // Elements
+    const $ = id => document.getElementById(id);
+    const transcriptBox = $('transcriptBox');
+    const startBtn = $('startBtn');
+    const stopBtn = $('stopBtn');
+    const copyBtn = $('copyBtn');
+    const clearBtn = $('clearBtn');
+    const statusMsg = $('statusMsg');
+    const badgeStatus = $('badgeStatus');
+    const recordVisualizer = $('recordVisualizer');
+    const micIcon = $('micIcon');
+    const pulseCircle = $('pulseCircle');
+    const recordingTimer = $('recordingTimer');
+
+    function init() {
+      setupTheme();
+      bindEvents();
+      updateTextStats();
+    }
+
+    function showToast(msg, isError = false) {
+      const toast = $('toast');
+      const toastMsg = $('toastMsg');
+      const toastIcon = $('toastIcon');
+
+      toastMsg.textContent = msg;
+      toastIcon.className = isError 
+        ? "fa-solid fa-circle-exclamation text-rose-400" 
+        : "fa-solid fa-circle-check text-emerald-400";
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    function setupTheme() {
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+
+      $('themeToggleBtn').onclick = () => {
+        if (document.documentElement.classList.contains('dark')) {
+          document.documentElement.classList.remove('dark');
+          localStorage.theme = 'light';
+        } else {
+          document.documentElement.classList.add('dark');
+          localStorage.theme = 'dark';
+        }
+      };
+    }
+
+    function startTimer() {
+      secondsElapsed = 0;
+      recordingTimer.classList.remove('hidden');
+      recordingTimer.textContent = "00:00";
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
+        const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+        const secs = String(secondsElapsed % 60).padStart(2, '0');
+        recordingTimer.textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      recordingTimer.classList.add('hidden');
+    }
+
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+        });
+
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = event => {
+          if (event.data.size > 0) audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          await processAudioWithCloudflare(audioBlob);
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        statusMsg.textContent = "Sedang mendengarkan... Bicara dengan jelas.";
+        badgeStatus.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300";
+        badgeStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> MEREKAM`;
+
+        recordVisualizer.className = "relative flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/40";
+        pulseCircle.classList.remove('hidden');
+        micIcon.className = "fa-solid fa-microphone text-2xl z-10 animate-bounce";
+
+        startTimer();
+      } catch (err) {
+        console.error("Microphone Error:", err);
+        showToast("Gagal mengakses mikrofon: " + err.message, true);
+        resetRecordingUI();
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+
+        stopTimer();
+        statusMsg.textContent = "Mengirim ke Cloudflare & Gemini AI...";
+        badgeStatus.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300";
+        badgeStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-spin"></span> MEMPROSES`;
+
+        startBtn.disabled = true;
+        stopBtn.disabled = true;
+      }
+    }
+
+    function resetRecordingUI() {
+      isRecording = false;
+      stopTimer();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+
+      statusMsg.textContent = "Siap. Klik 'Mulai Bicara' untuk memulai.";
+      badgeStatus.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
+      badgeStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-400"></span> SIAP`;
+
+      recordVisualizer.className = "relative flex items-center justify-center w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400";
+      pulseCircle.classList.add('hidden');
+      micIcon.className = "fa-solid fa-microphone text-2xl z-10";
+    }
+
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result.split(',')[1];
+          resolve(base64String);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // Process audio via Cloudflare Function Endpoint (/api/transcribe)
+    async function processAudioWithCloudflare(audioBlob) {
+      try {
+        const base64Audio = await blobToBase64(audioBlob);
+
+        const response = await fetch('/api/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            audio: base64Audio,
+            mimeType: audioBlob.type || "audio/webm"
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Gagal memproses audio.");
+        }
+
+        if (data.text) {
+          appendTranscript(data.text.trim());
+          showToast("Transkripsi berhasil!");
+        } else {
+          showToast("Tidak ada teks terdeteksi dari audio.", true);
+        }
+
+      } catch (err) {
+        console.error("Transcribe Error:", err);
+        showToast("Error: " + err.message, true);
+      } finally {
+        resetRecordingUI();
+      }
+    }
+
+    function appendTranscript(text) {
+      if (!text) return;
+      const currentVal = transcriptBox.value.trim();
+      transcriptBox.value = currentVal ? `${currentVal}\n${text}` : text;
+      transcriptBox.scrollTop = transcriptBox.scrollHeight;
+      updateTextStats();
+    }
+
+    function updateTextStats() {
+      const val = transcriptBox.value;
+      $('charCount').textContent = val.length;
+      const words = val.trim() ? val.trim().split(/\s+/).length : 0;
+      $('wordCount').textContent = words;
+    }
+
+    function bindEvents() {
+      startBtn.onclick = startRecording;
+      stopBtn.onclick = stopRecording;
+
+      copyBtn.onclick = () => {
+        if (!transcriptBox.value.trim()) {
+          showToast("Kotak teks masih kosong!", true);
+          return;
+        }
+        navigator.clipboard.writeText(transcriptBox.value);
+        showToast("Teks berhasil disalin ke clipboard!");
+      };
+
+      clearBtn.onclick = () => {
+        transcriptBox.value = "";
+        updateTextStats();
+        showToast("Teks dibersihkan.");
+      };
+
+      $('btnUpper').onclick = () => {
+        transcriptBox.value = transcriptBox.value.toUpperCase();
+        updateTextStats();
+      };
+
+      $('btnCleanSpace').onclick = () => {
+        transcriptBox.value = transcriptBox.value.replace(/\s+/g, ' ').trim();
+        updateTextStats();
+      };
+
+      transcriptBox.oninput = updateTextStats;
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
